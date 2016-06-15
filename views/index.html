@@ -1,0 +1,248 @@
+<!doctype html>
+<html>
+<head>
+    <title>Socket.IO chat</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+    <style>
+        @font-face {
+            font-family: Masque;
+            src: url('fonts/masque/MASQUE__.ttf');
+        }
+
+        html, body { margin: 0; padding: 0px; width:100%; height: 100%; font: 13px Helvetica, Arial; }
+        #celebImg{
+            -webkit-filter: blur(30px);
+            -moz-filter: blur(30px);
+            -o-filter: blur(30px);
+            -ms-filter: blur(30px);
+            filter: blur(30px);
+        }
+        #welcomeBanner{position: absolute; display: table; z-index: 10; margin: 0; width: 100%; height: 100%; top: 0; background:white; text-align: center; overflow: hidden}
+        #welcomeBanner input{border: 2px solid lightgrey; margin: 10px 0;}
+        #welcomeBanner input:focus{box-shadow: none; border: 2px solid #708090;}
+        #loginResponse, #registrationResponse {font-family: Open Sans; font-size: medium; color:crimson; font-weight: bold}
+        #showRegistrationForm:hover{color: crimson; cursor: pointer}
+        #showLoginForm:hover{color: crimson; cursor: pointer}
+        #setQtnBtn, .gameBtn { display: inline-block; padding: 15px 25px; cursor: pointer; text-align: center; text-decoration: none; outline: none; color: #fff; background-color: #4CAF50; border: none; border-radius: 15px; box-shadow: 0 9px #999; font-family: Tahoma; font-weight: normal;}
+        #setQtnBtn:hover, .gameBtn:hover {background-color: #3e8e41}
+        #setQtnBtn:active, .gameBtn:active  { background-color: #3e8e41; box-shadow: 0 5px #666; transform: translateY(4px);}
+        #qtnSetterDiv input{border: 2px solid lightgrey; margin: 10px 0;}
+        #qtnSetterDiv input:focus{box-shadow: none; border: 2px solid green;}
+        .form-group{ position: fixed; width:100%; bottom:-15px; background:grey;}
+        #sendBtn{ position: absolute; z-index: 10; }
+        /*#messages { list-style-type: none; margin: 0; padding: 10px; font-size: large}
+        #messages li { padding: 5px 10px; background: steelblue; color: white }
+        #messages li:nth-child(odd) { background: #eee; color: black}*/
+        #messages{ margin: 50px 0; padding: 10px; font-size:large }
+        #messages div{ padding: 15px 10px; width: 80%; border-radius: 2px 0 0 2px; float:left; margin-top:10px; background: lightgrey; background: -moz-linear-gradient(left, lightgrey 80%, transparent); color:black; clear:both }
+        #messages div:nth-child(odd){ padding: 15px 10px; width: 80%; border-radius: 2px 0 0 2px; float:right; background: steelblue; background: -moz-linear-gradient(left, steelblue 80%, transparent); color:white; clear:both }
+        #m{ border-radius: 0px; height: 55px; font: x-large Calibri; }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
+    <script>
+        $(document).ready(function(){
+
+            $('#liveWindow').height($(window).height());
+            /*if($("body").height() < $(window).height()){
+                $("body").height($(window).height());
+            }*/
+
+            //Socket IO functions
+            var socket = io();
+
+            /*var options = {
+                host: 'example.com',
+                port: '80',
+                path: '/path',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Length': post_data.length
+                }
+            };*/
+
+
+
+            $('#showRegistrationForm').click(function(){
+                $(".entryForms").hide();
+                $('#registrationForm').show();
+            });
+
+            $('#showLoginForm').click(function(){
+                $(".entryForms").hide();
+                $('#loginForm').show();;
+            });
+
+            $('#confirmUser').click(function(){
+                $('#welcomeBanner').animate({right: "100%"}, function(){
+                    $('#welcomeBanner').hide();
+                });
+            });
+
+            $('#welcomeBanner :input').focus(function() {
+                var inputType = $(this).attr('type');
+                if( inputType == "text" || inputType == "password" ){
+                    $(this).css('border-color', '#708090');
+                }
+            });
+            $('#welcomeBanner :input').blur(function(){
+                var inputType = $(this).attr('type');
+                if(inputType == "text" || inputType == "password"){
+                    $(this).css('border-color', 'lightgrey');
+                }
+            });
+
+            $('#loginBtn').click(function(e){
+                e.preventDefault();
+
+                var data = {};
+                data.email = $('#loginID').val();
+                data.password = $('#loginPwd').val();
+
+                if(data.email == "" || data.password == ""){
+                    if(data.email =="") $('#loginID').css('border-color', 'crimson');
+                    if(data.password == "") $('#loginPwd').css('border-color', 'crimson');
+                } else{
+                    $.ajax({
+                        type: 'POST',
+                        data: JSON.stringify(data),
+                        contentType: 'application/json',
+                        url: 'login',
+                        success: function(data){
+                            /*var jsonResponse = JSON.stringify(data);
+                             alert(data.message);*/
+                            if( data.loginResponse == 0 ){
+                                $('#loginResponse').html("Incorrect Username / Password");
+                                //alert('Incorrect username/Password');
+                            } else if( data.loginResponse == 1 ){
+                                $('#welcomeBanner').animate({right: "100%"}, function(){
+                                    $('#welcomeBanner').hide();
+                                });
+                            }
+                            /*$('#welcomeBanner').animate({right: "100%"}, function(){
+                             $('#welcomeBanner').hide();
+                             });*/
+                        }
+                    });
+                }
+            });
+
+            $('#registerBtn').click(function(e){
+                e.preventDefault();
+                $('#registrationResponse').html("");
+
+                var data = {};
+                data.email = $('#email').val();
+                data.alias = $('#alias').val();
+                data.password = $('#password').val();
+                data.confirmPassword = $('#confirmPassword').val();
+
+                if(data.email == "" || data.alias == "" || data.password == "" || data.confirmPassword == ""){
+                    if(data.email =="") $('#email').css('border-color', 'crimson');
+                    if(data.alias =="") $('#alias').css('border-color', 'crimson');
+                    if(data.password =="") $('#password').css('border-color', 'crimson');
+                    if(data.confirmPassword=="") $('#confirmPassword').css('border-color', 'crimson');
+                } else{
+                    if(data.password == data.confirmPassword){
+                        $.ajax({
+                            type: 'POST',
+                            data: JSON.stringify(data),
+                            contentType: 'application/json',
+                            url: 'registerUser',
+                            success: function(data){
+                                $('#registrationResponse').html("User added");
+                            }
+                        });
+                    }
+                    else{
+                        $('#registrationResponse').html("Password Mismatch");
+                    }
+                }
+            });
+
+            $('form').submit(function(){
+                socket.emit('chat message', $('#m').val());
+                //socket.emit('sender', {{user.email}});
+                $('#m').val('');
+                return false;
+            });
+            socket.on('chat message', function(msg){
+                //$('#messages').append($('<li>').text(msg));
+                $('#tempDiv').remove();
+                //alert(req.session.user.email);
+                $('#messages').append("<div style=''>" + msg + "</div>");
+                $('#messages').append("<div id='tempDiv' style='background: transparent;'>&nbsp</div>")
+                $("#liveWindow").animate({ scrollTop: $('#liveWindow').prop("scrollHeight")}, 1000);
+            });
+        });
+    </script>
+</head>
+<body>
+<form action="">
+    <div class="container" style="width:100%;padding:0px">
+        <div class="row" style="font-family: Masque; position: absolute; text-align: center; z-index: 11; margin: auto; width: 100%; background: whitesmoke">
+            <div class="col-lg-12">
+                {% if loggedIn %}<div style="float:right; clear: both"><a href="logout" style="font-family:Open Sans; background: steelblue; color: white">Logout</a></div>{% endif %}
+                <h2 style="clear: both">Top Banner</h2>
+            </div>
+        </div>
+        {% if !loggedIn %}
+        <div class="row" id="welcomeBanner" style="">
+            <div class="col-md-4 col-md-offset-4" style="display:table-cell; vertical-align: middle; margin-top: 100px">
+                <div id="registrationForm" class="entryForms" hidden>
+                    <input type="text" id="email" name="email" class="form-control" placeholder="Email ID" />
+                    <input type="text" id="alias" name="alias" class="form-control" placeholder="Alias" />
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Password"/>
+                    <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" placeholder="Confirm Password" />
+                    <div id="registrationResponse"></div>
+                    <input type="button" class="gameBtn" style="background: #708090; font-size: x-large" id="registerBtn" value="Register" class="btn btn-primary" />
+                    <div style="margin-top:20px; font-size: x-large; font-family: Open Sans">Registered already? <span id="showLoginForm" style="color: blue">Login</span></div>
+                </div>
+                <div id="loginForm" class="entryForms">
+                    <input type="text" id="loginID" name="email" placeholder="Email-ID" class="form-control" />
+                    <input type="password" id="loginPwd" name="password" placeholder="Password" class="form-control" />
+                    <div id="loginResponse"></div>
+                    <input type="button" class="gameBtn" style="background: #708090; font-size: x-large" id="loginBtn" value="Login" class="btn btn-primary" />
+                    <div style="margin-top:20px; font-size: x-large; font-family: Open Sans">Haven't Registered? Do it <span id="showRegistrationForm" style="color: blue">here</span></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="row" style="width: 100%; margin: 0">
+            <div class="col-lg-4" style="text-align:center; min-height:100%; display:table-cell; vertical-align: middle">
+                <!--<img id="celebImg" src="images/Syd.jpg" height="100%" />-->
+                <div id="setQtnBtn" style="margin-top: 80px; font-size: x-large">Set a personality</div>
+                <div id="qtnSetterDiv" style="border: 2px solid darkgreen; border-radius: 10px; margin-top: 20px; padding: 20px">
+                    <input type="text" class="form-control" placeholder="Personality Name" />
+                    <div style="margin: 10px 0"></div>
+                    <input type="text" class="form-control" placeholder="One liner hint" />
+                    <div style="margin-top:15px">
+                    <label class="gameBtn" style="padding: 5px 20px; border-radius: 5px">Confirm</label>
+                    <label class="gameBtn" style="padding: 5px 25px; border-radius: 5px; background: grey">Pass</label>
+                    </div>
+                </div>
+                <div style="text-align: center; border: 2px solid darkgreen; border-radius: 10px; margin-top: 10px;">
+                    <img src="images/hourglass.svg" />
+                    <p style="font-size: large">Setting the personality..</p>
+                </div>
+            </div>
+            <div id="liveWindow" class="col-lg-8" style="padding:0px; overflow-y: scroll; border-left:1px solid lightgrey; background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NSIgaGVpZ2h0PSIxMDAiPgo8cmVjdCB3aWR0aD0iNzUiIGhlaWdodD0iMTAwIiBmaWxsPSJzbGF0ZWdyYXkiPjwvcmVjdD4KPGNpcmNsZSBjeD0iNzUiIGN5PSI1MCIgcj0iMjguMyUiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZT0iIzlhYTZiMiIgZmlsbD0ibm9uZSI+PC9jaXJjbGU+CjxjaXJjbGUgY3g9IjAiIHI9IjI4LjMlIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2U9IiM5YWE2YjIiIGZpbGw9Im5vbmUiPjwvY2lyY2xlPgo8Y2lyY2xlIGN5PSIxMDAiIHI9IjI4LjMlIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2U9IiM5YWE2YjIiIGZpbGw9Im5vbmUiPjwvY2lyY2xlPgo8L3N2Zz4=');">
+                <div id="conversationDiv" style="">
+                   <!-- <ul id="messages">&nbsp;</ul>-->
+                    <div id="messages">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <input type="text" id="m" class="form-control" autocomplete="off"/>
+                    <i class="glyphicon glyphicon-send form-control-feedback"></i>
+                    <input type="submit" style="display:none" />
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+</body>
+</html>
